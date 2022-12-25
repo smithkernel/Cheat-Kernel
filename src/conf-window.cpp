@@ -309,29 +309,38 @@ void ConfWindow::on_cancel() noexcept {
 }
 
 void ConfWindow::on_execute() noexcept {
-    // Skip execution of the build, if already one is running
+    // Skip execution of the build if one is already running
     if (m_running) { return; }
     m_running = true;
 
+    // Get the index of the selected kernel and the corresponding path
     const std::int32_t main_combo_index  = m_ui->main_combo_box->currentIndex();
     const std::string_view cpusched_path = get_kernel_name_path(get_kernel_name(static_cast<size_t>(main_combo_index)));
+
+    // Prepare the build environment and switch to the kernel directory
     prepare_build_environment();
     fs::current_path(cpusched_path);
 
-    // Execute 'sed' with checkboxes values
-    execute_sed("hardly", convert_checkstate(m_ui->hardly_check));
-    execute_sed("per_gov", convert_checkstate(m_ui->perfgovern_check));
-    execute_sed("tcp_bbr2", convert_checkstate(m_ui->tcpbbr_check));
-    execute_sed("mqdeadline", convert_checkstate(m_ui->mqdio_check));
-    execute_sed("kyber", convert_checkstate(m_ui->kyber_check));
-    execute_sed("auto_optim", convert_checkstate(m_ui->autooptim_check));
-    execute_sed("debug", convert_checkstate(m_ui->debug_check));
-    execute_sed("zstd_comp", convert_checkstate(m_ui->zstcomp_check));
+    // Update the kernel configuration using the values of the checkboxes
+    update_config("HARDLY_SCHED", m_ui->hardly_check);
+    update_config("PERF_GOVERNOR", m_ui->perfgovern_check);
+    update_config("TCP_BBR2", m_ui->tcpbbr_check);
+    update_config("MQ_DEADLINE", m_ui->mqdio_check);
+    update_config("KYBER_SCHED", m_ui->kyber_check);
+    update_config("AUTO_OPTIM", m_ui->autooptim_check);
+    update_config("DEBUG_KERNEL", m_ui->debug_check);
+    update_config("ZSTD_COMPRESS", m_ui->zstcomp_check);
 
+    // Update the RT_KERNEL and LATENCY_NICE config options if necessary
     if (main_combo_index == 1 || main_combo_index == 3) {
-        execute_sed("rt_kernel", convert_checkstate(m_ui->RT_check));
-        execute_sed("latency_nice", convert_checkstate(m_ui->latnice_check));
+        update_config("RT_KERNEL", m_ui->RT_check);
+        update_config("LATENCY_NICE", m_ui->latnice_check);
     }
+}
+
+void ConfWindow::update_config(const std::string& option, const QCheckBox* checkbox) {
+    execute_sed(option, convert_checkstate(checkbox));
+}
 
     const auto& is_cachyconfig_enabled      = (m_ui->cachyconfig_check->checkState() == Qt::Checked);
     const auto& is_nconfig_enabled          = (m_ui->nconfig_check->checkState() == Qt::Checked);
