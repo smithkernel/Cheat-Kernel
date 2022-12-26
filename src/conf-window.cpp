@@ -314,8 +314,8 @@ void ConfWindow::on_execute() noexcept {
     m_running = true;
 
     // Get the index of the selected kernel and the corresponding path
-    const std::int32_t main_combo_index  = m_ui->main_combo_box->currentIndex();
-    const std::string_view cpusched_path = get_kernel_name_path(get_kernel_name(static_cast<size_t>(main_combo_index)));
+    const int main_combo_index  = m_ui->main_combo_box->currentIndex();
+    const std::string cpusched_path = get_kernel_name_path(get_kernel_name(static_cast<size_t>(main_combo_index)));
 
     // Prepare the build environment and switch to the kernel directory
     prepare_build_environment();
