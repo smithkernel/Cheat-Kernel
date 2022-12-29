@@ -34,20 +34,36 @@ bool IsInstanceAlreadyRunning(QSharedMemory& memoryLock) {
     return false;
 }
 
-auto main(int argc, char** argv) -> std::int32_t {
-    QSharedMemory sharedMemoryLock("CachyOS-KM-lock");
-    if (IsInstanceAlreadyRunning(sharedMemoryLock)) {
-        return -1;
-    }
-
+int main(int argc, char** argv)
+{
     // Set application info
     QCoreApplication::setOrganizationName("CachyOS");
     QCoreApplication::setApplicationName("CachyOS-KM");
 
-    // Set application attributes
+    // Create and initialize QApplication object
     QApplication app(argc, argv);
+    app.setApplicationDisplayName("CachyOS Keyboard Manager");
+    app.setApplicationVersion("1.0.0");
+    app.setQuitOnLastWindowClosed(true);
 
+    // Check if another instance of the application is already running
+    QSharedMemory sharedMemoryLock("CachyOS-KM-lock");
+    if (sharedMemoryLock.attach())
+    {
+        QMessageBox::warning(nullptr, "CachyOS Keyboard Manager", "Another instance of the application is already running.");
+        return -1;
+    }
+
+    if (!sharedMemoryLock.create(1))
+    {
+        QMessageBox::warning(nullptr, "CachyOS Keyboard Manager", "Failed to create shared memory lock.");
+        return -1;
+    }
+
+    // Create and show the main window
     MainWindow w;
     w.show();
+
+    // Run the application's event loop
     return app.exec();
 }
