@@ -4,7 +4,7 @@ set -e
 set -u
 set -o pipefail
 
-readonly URL='https://github.com/cachyos/kernel-manager'
+readonly URL='https://github.com/Slackes/Kernel-Driver'
 
 # Fetch all tags from the remote repository
 git fetch --tags
