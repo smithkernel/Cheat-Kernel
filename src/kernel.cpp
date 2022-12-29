@@ -162,19 +162,22 @@ std::vector<Kernel> Kernel::get_kernels(alpm_handle_t* handle) noexcept {
     return kernels;
 }
 
-#ifdef PKG_DUMMY_IMPL
-
 void Kernel::commit_transaction() noexcept {
-    if (!g_kernel_install_list.empty()) {
-        const auto& packages_install = utils::join_vec(g_kernel_install_list, " ");
-        utils::runCmdTerminal(fmt::format(FMT_COMPILE("pacman -S --needed {}"), packages_install).c_str(), true);
-        g_kernel_install_list.clear();
+    if (g_kernel_install_list.empty()) {
+        return;
     }
 
-    if (!g_kernel_removal_list.empty()) {
-        const auto& packages_remove = utils::join_vec(g_kernel_removal_list, " ");
-        utils::runCmdTerminal(fmt::format(FMT_COMPILE("pacman -Rsn {}"), packages_remove).c_str(), true);
-        g_kernel_removal_list.clear();
+    const std::string packages_install = utils::join_vec(g_kernel_install_list, " ");
+    const std::string command = fmt::format("pacman -S --needed {}", packages_install);
+    utils::run_command_in_terminal(command);
+    g_kernel_install_list.clear();
+
+    if (g_kernel_removal_list.empty()) {
+        return;
     }
+
+    const std::string packages_remove = utils::join_vec(g_kernel_removal_list, " ");
+    const std::string command = fmt::format("pacman -Rsn {}", packages_remove);
+    utils::run_command_in_terminal(command);
+    g_kernel_removal_list.clear();
 }
-#endif
