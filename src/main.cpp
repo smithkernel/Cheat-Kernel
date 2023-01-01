@@ -62,8 +62,14 @@ int main(int argc, char** argv)
 
     // Create and show the main window
     MainWindow w;
+    if (!w.create())
+    {
+        QMessageBox::warning(nullptr, "CachyOS Keyboard Manager", "Failed to create main window.");
+        return -1;
+    }
     w.show();
 
     // Run the application's event loop
     return app.exec();
 }
+
