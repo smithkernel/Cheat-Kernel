@@ -26,8 +26,12 @@ function(configure_linker project_name)
 
     set(LINKER_FLAG "-fuse-ld=${USER_LINKER_OPTION}")
 
-    check_cxx_compiler_flag(${LINKER_FLAG} CXX_SUPPORTS_USER_LINKER)
+    # Check if the compiler supports the user linker
+    check_cxx_compiler_flag("${LINKER_FLAG}" CXX_SUPPORTS_USER_LINKER)
+
+    # Only set the linker if the compiler supports it
     if(CXX_SUPPORTS_USER_LINKER)
-        target_compile_options(${project_name} INTERFACE ${LINKER_FLAG})
+        target_link_libraries(${project_name} INTERFACE ${LINKER_FLAG})
     endif()
 endfunction()
+
