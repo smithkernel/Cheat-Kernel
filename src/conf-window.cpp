@@ -116,33 +116,66 @@ std::string fix_path(std::string&& path) noexcept {
     return path;
 }
 
-void prepare_build_environment() noexcept {
+void prepare_build_environment() {
     static const fs::path app_path       = fix_path("~/.cache/cachyos-km");
     static const fs::path pkgbuilds_path = fix_path("~/.cache/cachyos-km/pkgbuilds");
+
+    // Create app_path if it doesn't exist.
     if (!fs::exists(app_path)) {
-        fs::create_directories(app_path);
+        if (!fs::create_directories(app_path)) {
+            std::cerr << "Error: Unable to create directory '" << app_path << "'." << std::endl;
+            return;
+        }
     }
 
-    fs::current_path(app_path);
+    // Set current path to app_path.
+    if (!fs::current_path(app_path)) {
+        std::cerr << "Error: Unable to set current path to '" << app_path << "'." << std::endl;
+        return;
+    }
 
-    // Check if folder exits, but .git doesn't.
+    // If pkgbuilds_path exists, but .git doesn't, remove the entire pkgbuilds_path directory.
     if (fs::exists(pkgbuilds_path) && !fs::exists(pkgbuilds_path / ".git")) {
-        fs::remove_all(pkgbuilds_path);
+        if (!fs::remove_all(pkgbuilds_path)) {
+            std::cerr << "Error: Unable to remove directory '" << pkgbuilds_path << "'." << std::endl;
+            return;
+        }
     }
 
-    std::int32_t cmd_status{};
+    // If pkgbuilds_path doesn't exist, clone the cachyos/linux-cachyos repository into it.
     if (!fs::exists(pkgbuilds_path)) {
-        cmd_status = std::system("git clone https://github.com/cachyos/linux-cachyos.git pkgbuilds");
+        int result = std::system("git clone https://github.com/cachyos/linux-cachyos.git pkgbuilds");
+        if (result != 0) {
+            std::cerr << "Error: 'git clone' returned with non-zero exit status: " << result << std::endl;
+            return;
+        }
     }
 
-    fs::current_path(pkgbuilds_path);
-    cmd_status += std::system("git checkout --force master");
-    cmd_status += std::system("git clean -fd");
-    cmd_status += std::system("git pull");
-    if (cmd_status != 0) {
-        std::perror("prepare_build_environment");
+    // Set current path to pkgbuilds_path and update the repository.
+    if (!fs::current_path(pkgbuilds_path)) {
+        std::cerr << "Error: Unable to set current path to '" << pkgbuilds_path << "'." << std::endl;
+        return;
+    }
+
+    int result = std::system("git checkout --force master");
+    if (result != 0) {
+        std::cerr << "Error: 'git checkout' returned with non-zero exit status: " << result << std::endl;
+        return;
+    }
+
+    result = std::system("git clean -fd");
+    if (result != 0) {
+        std::cerr << "Error: 'git clean' returned with non-zero exit status: " << result << std::endl;
+        return;
+    }
+
+    result = std::system("git pull");
+    if (result != 0) {
+        std::cerr << "Error: 'git pull' returned with non-zero exit status: " << result << std::endl;
+        return;
     }
 }
+
 
 void execute_sed(std::string_view option, std::string_view value) noexcept {
     const auto& sed_cmd = fmt::format(FMT_COMPILE("sed -i \"s/{}/{}-{}/\" PKGBUILD"), detail::default_option_map.at(option), detail::option_map.at(option), value);
