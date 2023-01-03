@@ -478,21 +478,36 @@ MainWindow::MainWindow(QWidget* parent)
     g_last_percent = &m_last_percent;
 #endif
 
-    // Create worker thread
-    m_worker = new Work([&]() {
-        while (m_thread_running.load(std::memory_order_consume)) {
-            std::unique_lock<std::mutex> lock(m_mutex);
-            fmt::print(stderr, "Waiting... \n");
+// ...
 
-            m_cv.wait(lock, [&] { return m_running.load(std::memory_order_consume); });
+// Make m_mutex, m_cv, and m_worker members of the class
+std::mutex m_mutex;
+std::condition_variable m_cv;
+std::thread m_worker;
 
-            if (m_running.load(std::memory_order_consume) && m_thread_running.load(std::memory_order_consume)) {
-                m_ui->ok->setEnabled(false);
+// ...
 
-                std::vector<std::string> change_list(static_cast<std::size_t>(m_change_list.size()));
-                for (int i = 0; i < m_change_list.size(); ++i) {
-                    change_list[static_cast<std::size_t>(i)] = m_change_list[i].toStdString();
-                }
+// Create worker thread in the constructor
+m_worker = std::thread([&]() {
+    while (m_thread_running.load(std::memory_order_consume)) {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        fmt::print(stderr, "Waiting... \n");
+
+        // Use a lambda function to check the condition
+        m_cv.wait(lock, [&] { return m_running.load(std::memory_order_consume); });
+
+        // Check the condition again after waking up to prevent a race condition
+        if (m_running.load(std::memory_order_consume) && m_thread_running.load(std::memory_order_consume)) {
+            m_ui->ok->setEnabled(false);
+
+            // Use range-based for loop to copy the elements of m_change_list
+            std::vector<std::string> change_list;
+            for (const auto& qstr : m_change_list) {
+                change_list.push_back(qstr.toStdString());
+            }
+        }
+    }
+});
 
 #ifdef PKG_DUMMY_IMPL
                 install_packages(m_handle, m_kernels, change_list);
